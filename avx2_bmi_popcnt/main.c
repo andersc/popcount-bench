@@ -1,6 +1,7 @@
 // Bench counting the number of set bits ('1') per every 64 bits using POPCNT,BMI2 and AVX2.
 // Made by Anders Cedronius 2014 (anders.cedronius (you know what) gmail.com)
 
+#include <sys/time.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -10,6 +11,7 @@
 #include <immintrin.h>
 #include <x86intrin.h>
 #include <math.h>
+#include <string.h>
 #include "CPUID.h"
 
 #define DISPLAY_HEIGHT  4
@@ -33,7 +35,7 @@ __attribute__ ((aligned(32))) static unsigned char k1[32*3]={
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
 };
 
-//Fill all data objects with random data.
+//Fill all data_objects with random data.
 void populate_data()
 {
     for(unsigned int i = 0; i < NUM_DATA_OBJECTS; i++)
@@ -70,7 +72,7 @@ void display_dest_data()
     }
 }
 
-//Calculate the average result
+//Calculate the average result, skips the first run.
 long calc_avrg( long* elapsed)
 {
     long avrg=0;
@@ -97,14 +99,12 @@ void bench_move_data_memcpy()
 
 
 //BMI2
-// __tzcnt64 (_tzcnt_u64) is not declared in x86intrin.h LLVM
+// (_tzcnt_u64) is not declared in x86intrin.h LLVM using __tzcnt_u64 instead.
 void bench_bmi2()
 {
     for(unsigned int i = 0; i < NUM_DATA_OBJECTS; i++)
     {
-        //This routine does not produce the same output as the other versions (values are all wrong).
-        //However I cant see my mistake if I's me. Probably LLVM
-        
+        //This routine does not produce the same output as the other methods (values are all wrong).
         data_out[i]=__tzcnt_u64(~_pext_u64(data[i],data[i]));
     }
 }
@@ -131,10 +131,7 @@ void asm_avx2()
 
 void bench_me(void (*f)(),long* elapsed,char* text)
 {
-    
-    struct timeval t0;
-    struct timeval t1;
-    
+    struct timeval t0,t1;
     for (unsigned int i = 0; i < ITTERATIONS; i++)
     {
         populate_data();
